@@ -98,7 +98,8 @@ const getContactsData = () => {
 export default function Index() {
   const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const [selectedClass, setSelectedClass] = useState('5А');
+  const [selectedClass, setSelectedClass] = useState(() => localStorage.getItem('myClass') || '');
+  const [showClassSelector, setShowClassSelector] = useState(() => !localStorage.getItem('myClass'));
   const [currentTime, setCurrentTime] = useState(new Date());
   const [scheduleData, setScheduleData] = useState(getScheduleData());
   const [bellsData, setBellsData] = useState(getBellsData());
@@ -182,13 +183,56 @@ export default function Index() {
 
   const lessonInfo = getCurrentLesson();
 
+  const handleClassSelect = (className: string) => {
+    setSelectedClass(className);
+    localStorage.setItem('myClass', className);
+    setShowClassSelector(false);
+  };
+
+  const handleChangeClass = () => {
+    setShowClassSelector(true);
+  };
+
+  if (showClassSelector) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-8">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">🎒</div>
+            <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+              Выбери свой класс
+            </h1>
+            <p className="text-muted-foreground">Мы запомним его для тебя</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {CLASSES.map(cls => (
+              <Button
+                key={cls}
+                variant="outline"
+                className="h-16 text-lg font-semibold hover-scale"
+                onClick={() => handleClassSelect(cls)}
+              >
+                {cls}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted pb-20">
       <div className="max-w-md mx-auto p-4">
         <div className="flex items-center justify-between mb-6 animate-fade-in">
-          <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Школа 📚
-          </h1>
+          <div>
+            <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Школа 📚
+            </h1>
+            <Button variant="link" className="h-auto p-0 text-sm" onClick={handleChangeClass}>
+              {selectedClass} • Сменить класс
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <Icon name="Sun" size={18} className="text-muted-foreground" />
             <Switch checked={darkMode} onCheckedChange={setDarkMode} />
@@ -298,19 +342,12 @@ export default function Index() {
             </Button>
             
             <Card className="p-4">
-              <h2 className="text-2xl font-heading font-bold mb-4">Расписание уроков</h2>
-              <div className="mb-4">
-                <label className="text-sm text-muted-foreground mb-2 block">Выберите класс</label>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CLASSES.map(cls => (
-                      <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-heading font-bold">Расписание уроков</h2>
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground">Мой класс</div>
+                  <div className="text-lg font-heading font-bold text-primary">{selectedClass}</div>
+                </div>
               </div>
 
               <Tabs defaultValue="Понедельник" className="w-full">
