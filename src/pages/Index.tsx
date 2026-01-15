@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
+import ClassSelector from '@/components/school/ClassSelector';
+import HomeTab from '@/components/school/HomeTab';
+import TabContentComponent from '@/components/school/TabContent';
+import BottomNavigation from '@/components/school/BottomNavigation';
 
 const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-const CLASSES = ['1А', '1Б', '2А', '2Б', '3А', '3Б', '4А', '4Б', '5А', '5Б', '6А', '6Б', '7А', '7Б', '8А', '8Б', '9А', '9Б', '10А', '10Б', '11А', '11Б'];
 
 const getScheduleData = () => {
   const saved = localStorage.getItem('scheduleData');
@@ -194,31 +194,7 @@ export default function Index() {
   };
 
   if (showClassSelector) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-8">
-          <div className="text-center mb-6">
-            <div className="text-6xl mb-4">🎒</div>
-            <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-              Выбери свой класс
-            </h1>
-            <p className="text-muted-foreground">Мы запомним его для тебя</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {CLASSES.map(cls => (
-              <Button
-                key={cls}
-                variant="outline"
-                className="h-16 text-lg font-semibold hover-scale"
-                onClick={() => handleClassSelect(cls)}
-              >
-                {cls}
-              </Button>
-            ))}
-          </div>
-        </Card>
-      </div>
-    );
+    return <ClassSelector onClassSelect={handleClassSelect} />;
   }
 
   return (
@@ -240,419 +216,29 @@ export default function Index() {
           </div>
         </div>
 
-        {activeTab === 'home' && (
-          <div className="space-y-4 animate-slide-up">
-            <Card className="p-6 bg-gradient-to-br from-primary to-secondary text-primary-foreground">
-              <div className="text-center space-y-3">
-                <div className="text-sm opacity-90">{currentDay}</div>
-                <div className="text-4xl font-heading font-bold">
-                  {currentTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                
-                {lessonInfo.status === 'lesson' && (
-                  <div className="space-y-2 animate-pulse-soft">
-                    <div className="text-lg font-semibold">Урок {lessonInfo.lesson}</div>
-                    <div className="text-2xl font-heading font-bold">{lessonInfo.minutesLeft} мин</div>
-                    <div className="text-sm opacity-90">до конца урока</div>
-                  </div>
-                )}
-
-                {lessonInfo.status === 'break' && (
-                  <div className="space-y-2 animate-pulse-soft">
-                    <div className="text-lg font-semibold">Перемена</div>
-                    <div className="text-2xl font-heading font-bold">{lessonInfo.minutesLeft} мин</div>
-                    <div className="text-sm opacity-90">до {lessonInfo.nextLesson} урока</div>
-                  </div>
-                )}
-
-                {lessonInfo.status === 'before' && (
-                  <div className="space-y-2">
-                    <div className="text-lg font-semibold">До начала занятий</div>
-                    <div className="text-2xl font-heading font-bold">{lessonInfo.minutesLeft} мин</div>
-                  </div>
-                )}
-
-                {lessonInfo.status === 'after' && (
-                  <div className="space-y-2">
-                    <div className="text-lg font-semibold">Уроки закончились</div>
-                    <div className="text-sm opacity-90">Увидимся завтра! 👋</div>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-2 hover-scale"
-                onClick={() => setActiveTab('schedule')}
-              >
-                <Icon name="Calendar" size={28} className="text-primary" />
-                <span className="font-semibold">Расписание</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-2 hover-scale"
-                onClick={() => setActiveTab('bells')}
-              >
-                <Icon name="Bell" size={28} className="text-accent" />
-                <span className="font-semibold">Звонки</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-2 hover-scale"
-                onClick={() => setActiveTab('menu')}
-              >
-                <Icon name="UtensilsCrossed" size={28} className="text-secondary" />
-                <span className="font-semibold">Столовая</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-2 hover-scale"
-                onClick={() => setActiveTab('teachers')}
-              >
-                <Icon name="Users" size={28} className="text-primary" />
-                <span className="font-semibold">Учителя</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-2 hover-scale"
-                onClick={() => setActiveTab('contacts')}
-              >
-                <Icon name="Phone" size={28} className="text-accent" />
-                <span className="font-semibold">Контакты</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-2 hover-scale"
-                onClick={() => setActiveTab('info')}
-              >
-                <Icon name="Info" size={28} className="text-secondary" />
-                <span className="font-semibold">Информация</span>
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'schedule' && (
-          <div className="space-y-4 animate-fade-in">
-            <Button variant="ghost" onClick={() => setActiveTab('home')} className="mb-2">
-              <Icon name="ArrowLeft" size={20} className="mr-2" />
-              Назад
-            </Button>
-            
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-heading font-bold">Расписание уроков</h2>
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground">Мой класс</div>
-                  <div className="text-lg font-heading font-bold text-primary">{selectedClass}</div>
-                </div>
-              </div>
-
-              <Tabs defaultValue="Понедельник" className="w-full">
-                <TabsList className="grid grid-cols-5 w-full mb-4">
-                  {DAYS.slice(0, 5).map(day => (
-                    <TabsTrigger key={day} value={day} className="text-xs">
-                      {day.slice(0, 2)}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {DAYS.slice(0, 5).map(day => (
-                  <TabsContent key={day} value={day} className="space-y-2">
-                    {(scheduleData[selectedClass]?.[day] || 
-                      scheduleData['5А']?.[day] || []).map((subject, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
-                          {idx + 1}
-                        </div>
-                        <span className="font-medium">{subject}</span>
-                      </div>
-                    ))}
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'bells' && (
-          <div className="space-y-4 animate-fade-in">
-            <Button variant="ghost" onClick={() => setActiveTab('home')} className="mb-2">
-              <Icon name="ArrowLeft" size={20} className="mr-2" />
-              Назад
-            </Button>
-            
-            <Card className="p-4">
-              <h2 className="text-2xl font-heading font-bold mb-4">Расписание звонков</h2>
-              <Tabs defaultValue="Понедельник" className="w-full">
-                <TabsList className="grid grid-cols-5 w-full mb-4">
-                  {DAYS.slice(0, 5).map(day => (
-                    <TabsTrigger key={day} value={day} className="text-xs">
-                      {day.slice(0, 2)}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {DAYS.slice(0, 5).map(day => (
-                  <TabsContent key={day} value={day} className="space-y-2">
-                    {(bellsData[day] || bellsData['Понедельник'] || []).map((bell) => (
-                      <div key={bell.lesson} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-accent/10 to-primary/10">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center font-bold text-accent-foreground">
-                            {bell.lesson}
-                          </div>
-                          <span className="font-semibold">Урок {bell.lesson}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-mono font-semibold">{bell.start}</div>
-                          <div className="text-sm text-muted-foreground">{bell.end}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'menu' && (
-          <div className="space-y-4 animate-fade-in">
-            <Button variant="ghost" onClick={() => setActiveTab('home')} className="mb-2">
-              <Icon name="ArrowLeft" size={20} className="mr-2" />
-              Назад
-            </Button>
-            
-            <Card className="p-4">
-              <h2 className="text-2xl font-heading font-bold mb-4">Меню столовой</h2>
-              <Tabs defaultValue="Понедельник" className="w-full">
-                <TabsList className="grid grid-cols-5 w-full mb-4">
-                  {DAYS.slice(0, 5).map(day => (
-                    <TabsTrigger key={day} value={day} className="text-xs">
-                      {day.slice(0, 2)}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {DAYS.slice(0, 5).map(day => (
-                  <TabsContent key={day} value={day} className="space-y-4">
-                    <div>
-                      <h3 className="font-heading font-bold text-lg mb-2 flex items-center gap-2">
-                        <Icon name="Coffee" size={20} className="text-secondary" />
-                        Завтрак
-                      </h3>
-                      <ul className="space-y-1">
-                        {(menuData[day]?.breakfast || menuData['Понедельник']?.breakfast || []).map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm">
-                            <span className="text-secondary">•</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="font-heading font-bold text-lg mb-2 flex items-center gap-2">
-                        <Icon name="UtensilsCrossed" size={20} className="text-primary" />
-                        Обед
-                      </h3>
-                      <ul className="space-y-1">
-                        {(menuData[day]?.lunch || menuData['Понедельник']?.lunch || []).map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm">
-                            <span className="text-primary">•</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'teachers' && (
-          <div className="space-y-4 animate-fade-in">
-            <Button variant="ghost" onClick={() => setActiveTab('home')} className="mb-2">
-              <Icon name="ArrowLeft" size={20} className="mr-2" />
-              Назад
-            </Button>
-            
-            <Card className="p-4">
-              <h2 className="text-2xl font-heading font-bold mb-4">Учителя</h2>
-              <div className="space-y-3">
-                {teachersData.map((teacher, idx) => (
-                  <Card key={idx} className="p-4 bg-muted/30">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-foreground font-heading font-bold text-lg">
-                        {teacher.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{teacher.name}</h3>
-                        <p className="text-sm text-muted-foreground">{teacher.subject}</p>
-                        <p className="text-xs text-accent mt-1">{teacher.category}</p>
-                        <Button variant="link" className="h-auto p-0 text-xs mt-2" asChild>
-                          <a href={`tel:${teacher.phone}`}>
-                            <Icon name="Phone" size={14} className="mr-1" />
-                            {teacher.phone}
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'contacts' && (
-          <div className="space-y-4 animate-fade-in">
-            <Button variant="ghost" onClick={() => setActiveTab('home')} className="mb-2">
-              <Icon name="ArrowLeft" size={20} className="mr-2" />
-              Назад
-            </Button>
-            
-            <Card className="p-6">
-              <h2 className="text-2xl font-heading font-bold mb-6">Контакты школы</h2>
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Icon name="Phone" size={24} className="text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Телефон</div>
-                    <a href={`tel:${contactsData.phone}`} className="text-lg font-semibold hover:text-primary">
-                      {contactsData.phone}
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
-                    <Icon name="Mail" size={24} className="text-accent" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Email</div>
-                    <a href={`mailto:${contactsData.email}`} className="text-lg font-semibold hover:text-accent">
-                      {contactsData.email}
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center">
-                    <Icon name="MapPin" size={24} className="text-secondary" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Адрес</div>
-                    <p className="text-lg font-semibold">
-                      {contactsData.address}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-4">
-                  <Button className="w-full" asChild>
-                    <a href={`tel:${contactsData.phone}`}>
-                      <Icon name="Phone" size={18} className="mr-2" />
-                      Позвонить
-                    </a>
-                  </Button>
-                  <Button variant="outline" className="w-full" asChild>
-                    <a href={`mailto:${contactsData.email}`}>
-                      <Icon name="Mail" size={18} className="mr-2" />
-                      Написать
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'info' && (
-          <div className="space-y-4 animate-fade-in">
-            <Button variant="ghost" onClick={() => setActiveTab('home')} className="mb-2">
-              <Icon name="ArrowLeft" size={20} className="mr-2" />
-              Назад
-            </Button>
-            
-            <Card className="p-4">
-              <h2 className="text-2xl font-heading font-bold mb-4">Информация и новости</h2>
-              <div className="space-y-3">
-                {newsData.map((item) => (
-                  <Card key={item.id} className={`p-4 ${item.pinned ? 'bg-gradient-to-br from-primary/10 to-secondary/10 border-primary' : 'bg-muted/30'}`}>
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-heading font-bold text-lg flex items-center gap-2">
-                        {item.pinned && <Icon name="Pin" size={16} className="text-primary" />}
-                        {item.title}
-                      </h3>
-                    </div>
-                    <p className="text-sm mb-2">{item.text}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Icon name="Calendar" size={14} />
-                      {new Date(item.date).toLocaleDateString('ru-RU')}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </Card>
-          </div>
+        {activeTab === 'home' ? (
+          <HomeTab
+            currentTime={currentTime}
+            currentDay={currentDay}
+            lessonInfo={lessonInfo}
+            onTabChange={setActiveTab}
+          />
+        ) : (
+          <TabContentComponent
+            activeTab={activeTab}
+            selectedClass={selectedClass}
+            scheduleData={scheduleData}
+            bellsData={bellsData}
+            menuData={menuData}
+            teachersData={teachersData}
+            newsData={newsData}
+            contactsData={contactsData}
+            onBack={() => setActiveTab('home')}
+          />
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="max-w-md mx-auto grid grid-cols-6 gap-1 p-2">
-          <Button
-            variant={activeTab === 'home' ? 'default' : 'ghost'}
-            className="flex-col h-16 gap-1"
-            onClick={() => setActiveTab('home')}
-          >
-            <Icon name="Home" size={20} />
-            <span className="text-xs">Главная</span>
-          </Button>
-          <Button
-            variant={activeTab === 'schedule' ? 'default' : 'ghost'}
-            className="flex-col h-16 gap-1"
-            onClick={() => setActiveTab('schedule')}
-          >
-            <Icon name="Calendar" size={20} />
-            <span className="text-xs">Уроки</span>
-          </Button>
-          <Button
-            variant={activeTab === 'bells' ? 'default' : 'ghost'}
-            className="flex-col h-16 gap-1"
-            onClick={() => setActiveTab('bells')}
-          >
-            <Icon name="Bell" size={20} />
-            <span className="text-xs">Звонки</span>
-          </Button>
-          <Button
-            variant={activeTab === 'menu' ? 'default' : 'ghost'}
-            className="flex-col h-16 gap-1"
-            onClick={() => setActiveTab('menu')}
-          >
-            <Icon name="UtensilsCrossed" size={20} />
-            <span className="text-xs">Еда</span>
-          </Button>
-          <Button
-            variant={activeTab === 'teachers' ? 'default' : 'ghost'}
-            className="flex-col h-16 gap-1"
-            onClick={() => setActiveTab('teachers')}
-          >
-            <Icon name="Users" size={20} />
-            <span className="text-xs">Учителя</span>
-          </Button>
-          <Button
-            variant={activeTab === 'info' ? 'default' : 'ghost'}
-            className="flex-col h-16 gap-1"
-            onClick={() => setActiveTab('info')}
-          >
-            <Icon name="Info" size={20} />
-            <span className="text-xs">Инфо</span>
-          </Button>
-        </div>
-      </div>
+      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }
