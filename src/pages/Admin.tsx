@@ -49,8 +49,9 @@ const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Чет�
 export default function Admin() {
   const { toast } = useToast();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
+  const [isSettingPassword, setIsSettingPassword] = useState(() => !localStorage.getItem('adminPassword'));
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   const [scheduleData, setScheduleData] = useState<Schedule>(() => {
     const saved = localStorage.getItem('scheduleData');
@@ -115,18 +116,36 @@ export default function Admin() {
   const [selectedClass, setSelectedClass] = useState('5А');
   const [selectedDay, setSelectedDay] = useState('Понедельник');
 
+  const handleSetPassword = () => {
+    if (password.length < 4) {
+      toast({ title: 'Ошибка', description: 'Пароль должен быть минимум 4 символа', variant: 'destructive' });
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast({ title: 'Ошибка', description: 'Пароли не совпадают', variant: 'destructive' });
+      return;
+    }
+    localStorage.setItem('adminPassword', password);
+    setIsSettingPassword(false);
+    setIsLoggedIn(true);
+    setPassword('');
+    setConfirmPassword('');
+    toast({ title: 'Пароль установлен', description: 'Теперь вы в админ-панели!' });
+  };
+
   const handleLogin = () => {
-    if (username === 'admin' && password === 'admin123') {
+    const savedPassword = localStorage.getItem('adminPassword');
+    if (password === savedPassword) {
       setIsLoggedIn(true);
+      setPassword('');
       toast({ title: 'Успешный вход', description: 'Добро пожаловать в админ-панель!' });
     } else {
-      toast({ title: 'Ошибка входа', description: 'Неверный логин или пароль', variant: 'destructive' });
+      toast({ title: 'Ошибка входа', description: 'Неверный пароль', variant: 'destructive' });
     }
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
-    setUsername('');
     setPassword('');
   };
 
@@ -228,36 +247,76 @@ export default function Admin() {
     setNewsData(updated);
   };
 
+  if (isSettingPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
+        <Card className="w-full max-w-md p-8">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">🔐</div>
+            <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+              Придумай пароль
+            </h1>
+            <p className="text-muted-foreground">Для входа в админ-панель</p>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="newPassword">Пароль (минимум 4 символа)</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Повтори пароль</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSetPassword()}
+              />
+            </div>
+            <Button className="w-full" onClick={handleSetPassword}>
+              <Icon name="Check" size={18} className="mr-2" />
+              Установить пароль
+            </Button>
+            <div className="text-center">
+              <Button variant="link" asChild>
+                <a href="/">← Вернуться на главную</a>
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
         <Card className="w-full max-w-md p-8">
           <div className="text-center mb-6">
+            <div className="text-6xl mb-4">🔑</div>
             <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-              Админ-панель
+              Вход в админ-панель
             </h1>
-            <p className="text-muted-foreground">Введите данные для входа</p>
+            <p className="text-muted-foreground">Введи свой пароль</p>
           </div>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="username">Логин</Label>
-              <Input
-                id="username"
-                placeholder="admin"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
             <div>
               <Label htmlFor="password">Пароль</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••"
+                placeholder="••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                autoFocus
               />
             </div>
             <Button className="w-full" onClick={handleLogin}>
