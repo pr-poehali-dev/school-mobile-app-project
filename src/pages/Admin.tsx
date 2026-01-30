@@ -113,8 +113,17 @@ export default function Admin() {
     };
   });
 
+  const [classCodes, setClassCodes] = useState<{[key: string]: string}>(() => {
+    const saved = localStorage.getItem('classCodes');
+    return saved ? JSON.parse(saved) : {
+      '5А': 'MATH5A',
+      '8Б': 'PHYS8B'
+    };
+  });
   const [selectedClass, setSelectedClass] = useState('5А');
   const [selectedDay, setSelectedDay] = useState('Понедельник');
+  const [newClassName, setNewClassName] = useState('');
+  const [newClassCode, setNewClassCode] = useState('');
 
   const handleSetPassword = () => {
     if (password.length < 4) {
@@ -247,6 +256,38 @@ export default function Admin() {
     setNewsData(updated);
   };
 
+  const saveClassCodes = () => {
+    localStorage.setItem('classCodes', JSON.stringify(classCodes));
+    toast({ title: 'Сохранено', description: 'Коды классов обновлены' });
+  };
+
+  const addNewClass = () => {
+    if (!newClassName.trim() || !newClassCode.trim()) {
+      toast({ title: 'Ошибка', description: 'Заполните название и код класса', variant: 'destructive' });
+      return;
+    }
+    const code = newClassCode.trim().toUpperCase();
+    if (Object.values(classCodes).includes(code)) {
+      toast({ title: 'Ошибка', description: 'Такой код уже используется', variant: 'destructive' });
+      return;
+    }
+    setClassCodes({ ...classCodes, [newClassName.trim()]: code });
+    setNewClassName('');
+    setNewClassCode('');
+    toast({ title: 'Успешно', description: `Класс ${newClassName} добавлен` });
+  };
+
+  const removeClass = (className: string) => {
+    const updated = { ...classCodes };
+    delete updated[className];
+    setClassCodes(updated);
+    toast({ title: 'Удалено', description: `Класс ${className} удален` });
+  };
+
+  const updateClassCode = (className: string, newCode: string) => {
+    setClassCodes({ ...classCodes, [className]: newCode.toUpperCase() });
+  };
+
   if (isSettingPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
@@ -358,8 +399,9 @@ export default function Admin() {
           </div>
         </div>
 
-        <Tabs defaultValue="schedule" className="w-full">
-          <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full mb-6">
+        <Tabs defaultValue="classes" className="w-full">
+          <TabsList className="grid grid-cols-3 lg:grid-cols-7 w-full mb-6">
+            <TabsTrigger value="classes">Классы</TabsTrigger>
             <TabsTrigger value="schedule">Расписание</TabsTrigger>
             <TabsTrigger value="bells">Звонки</TabsTrigger>
             <TabsTrigger value="menu">Столовая</TabsTrigger>
@@ -367,6 +409,63 @@ export default function Admin() {
             <TabsTrigger value="contacts">Контакты</TabsTrigger>
             <TabsTrigger value="news">Новости</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="classes" className="space-y-4">
+            <Card className="p-6">
+              <h2 className="text-2xl font-heading font-bold mb-4">Управление классами и кодами доступа</h2>
+              <p className="text-muted-foreground mb-6">
+                Каждый класс имеет уникальный код для входа учеников в приложение
+              </p>
+              
+              <div className="space-y-4 mb-6">
+                <div className="grid gap-4">
+                  {Object.entries(classCodes).map(([className, code]) => (
+                    <div key={className} className="flex gap-2 items-center p-4 border rounded-lg bg-muted/50">
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">{className}</div>
+                        <div className="text-sm text-muted-foreground">Код класса</div>
+                      </div>
+                      <Input
+                        value={code}
+                        onChange={(e) => updateClassCode(className, e.target.value)}
+                        className="w-40 font-mono text-center"
+                        placeholder="КОД"
+                      />
+                      <Button variant="destructive" size="icon" onClick={() => removeClass(className)}>
+                        <Icon name="Trash2" size={18} />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t pt-6 mb-6">
+                <h3 className="font-semibold mb-4">Добавить новый класс</h3>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Название класса (например: 9В)"
+                    value={newClassName}
+                    onChange={(e) => setNewClassName(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Код класса"
+                    value={newClassCode}
+                    onChange={(e) => setNewClassCode(e.target.value)}
+                    className="w-40 font-mono uppercase"
+                  />
+                  <Button onClick={addNewClass}>
+                    <Icon name="Plus" size={18} className="mr-2" />
+                    Добавить
+                  </Button>
+                </div>
+              </div>
+
+              <Button onClick={saveClassCodes} className="w-full">
+                <Icon name="Save" size={18} className="mr-2" />
+                Сохранить все изменения
+              </Button>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="schedule" className="space-y-4">
             <Card className="p-6">
