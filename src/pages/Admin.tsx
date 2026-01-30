@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import FUNC_URLS from '../../backend/func2url.json';
 
 interface Schedule {
   [className: string]: {
@@ -48,8 +49,12 @@ const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Чет�
 
 export default function Admin() {
   const { toast } = useToast();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isSettingPassword, setIsSettingPassword] = useState(() => !localStorage.getItem('adminPassword'));
+  const [currentUser, setCurrentUser] = useState<{username: string, role: string, class_id?: number, class_name?: string} | null>(() => {
+    const saved = localStorage.getItem('teacherUser');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('adminPassword') || !!localStorage.getItem('teacherUser'));
+  const [isSettingPassword, setIsSettingPassword] = useState(() => !localStorage.getItem('adminPassword') && !localStorage.getItem('teacherUser'));
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
@@ -113,13 +118,8 @@ export default function Admin() {
     };
   });
 
-  const [classCodes, setClassCodes] = useState<{[key: string]: string}>(() => {
-    const saved = localStorage.getItem('classCodes');
-    return saved ? JSON.parse(saved) : {
-      '5А': 'MATH5A',
-      '8Б': 'PHYS8B'
-    };
-  });
+  const [classCodes, setClassCodes] = useState<{id: number, name: string, access_code: string}[]>([]);
+  const [isLoadingClasses, setIsLoadingClasses] = useState(true);
   const [selectedClass, setSelectedClass] = useState('5А');
   const [selectedDay, setSelectedDay] = useState('Понедельник');
   const [newClassName, setNewClassName] = useState('');
@@ -156,7 +156,12 @@ export default function Admin() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setPassword('');
+    setCurrentUser(null);
+    localStorage.removeItem('teacherUser');
   };
+
+  const isAdmin = !currentUser || currentUser.role === 'admin';
+  const isTeacher = currentUser && currentUser.role === 'teacher';
 
   const saveSchedule = () => {
     localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
@@ -256,36 +261,72 @@ export default function Admin() {
     setNewsData(updated);
   };
 
-  const saveClassCodes = () => {
-    localStorage.setItem('classCodes', JSON.stringify(classCodes));
-    toast({ title: 'Сохранено', description: 'Коды классов обновлены' });
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadClasses();
+    }
+  }, [isLoggedIn]);
+
+  const loadClasses = async () => {
+    try {
+      const response = await fetch(FUNC_URLS.classes);
+      const data = await response.json();
+      if (data.classes) {
+        setClassCodes(data.classes);
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить классы', variant: 'destructive' });
+    } finally {
+      setIsLoadingClasses(false);
+    }
   };
 
-  const addNewClass = () => {
-    if (!newClassName.trim() || !newClassCode.trim()) {
-      toast({ title: 'Ошибка', description: 'Заполните название и код класса', variant: 'destructive' });
+  const addNewClass = async () => {
+    if (!newClassName.trim()) {
+      toast({ title: 'Ошибка', description: 'Заполните название класса', variant: 'destructive' });
       return;
     }
-    const code = newClassCode.trim().toUpperCase();
-    if (Object.values(classCodes).includes(code)) {
-      toast({ title: 'Ошибка', description: 'Такой код уже используется', variant: 'destructive' });
-      return;
+
+    try {
+      const response = await fetch(FUNC_URLS.classes, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name: newClassName.trim(),
+          access_code: newClassCode.trim() || undefined
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        await loadClasses();
+        setNewClassName('');
+        setNewClassCode('');
+        toast({ title: 'Успешно', description: `Класс ${data.class.name} добавлен с кодом ${data.class.access_code}` });
+      } else {
+        toast({ title: 'Ошибка', description: data.error || 'Не удалось добавить класс', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось добавить класс', variant: 'destructive' });
     }
-    setClassCodes({ ...classCodes, [newClassName.trim()]: code });
-    setNewClassName('');
-    setNewClassCode('');
-    toast({ title: 'Успешно', description: `Класс ${newClassName} добавлен` });
   };
 
-  const removeClass = (className: string) => {
-    const updated = { ...classCodes };
-    delete updated[className];
-    setClassCodes(updated);
-    toast({ title: 'Удалено', description: `Класс ${className} удален` });
-  };
+  const updateClassCode = async (classId: number, newCode: string) => {
+    try {
+      const response = await fetch(FUNC_URLS.classes, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: classId, access_code: newCode })
+      });
 
-  const updateClassCode = (className: string, newCode: string) => {
-    setClassCodes({ ...classCodes, [className]: newCode.toUpperCase() });
+      if (response.ok) {
+        await loadClasses();
+        toast({ title: 'Успешно', description: 'Код обновлен' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось обновить код', variant: 'destructive' });
+    }
   };
 
   if (isSettingPassword) {
@@ -381,9 +422,11 @@ export default function Admin() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Панель администратора
+              {isTeacher ? `Панель учителя ${currentUser?.class_name || ''}` : 'Панель администратора'}
             </h1>
-            <p className="text-muted-foreground text-sm">Управление школьным приложением</p>
+            <p className="text-muted-foreground text-sm">
+              {isTeacher ? `Управление классом ${currentUser?.class_name}` : 'Управление школьным приложением'}
+            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" asChild>
@@ -399,14 +442,14 @@ export default function Admin() {
           </div>
         </div>
 
-        <Tabs defaultValue="classes" className="w-full">
-          <TabsList className="grid grid-cols-3 lg:grid-cols-7 w-full mb-6">
-            <TabsTrigger value="classes">Классы</TabsTrigger>
+        <Tabs defaultValue={isTeacher ? "schedule" : "classes"} className="w-full">
+          <TabsList className={`grid ${isAdmin ? 'grid-cols-3 lg:grid-cols-7' : 'grid-cols-2 lg:grid-cols-4'} w-full mb-6`}>
+            {isAdmin && <TabsTrigger value="classes">Классы</TabsTrigger>}
             <TabsTrigger value="schedule">Расписание</TabsTrigger>
-            <TabsTrigger value="bells">Звонки</TabsTrigger>
-            <TabsTrigger value="menu">Столовая</TabsTrigger>
-            <TabsTrigger value="teachers">Учителя</TabsTrigger>
-            <TabsTrigger value="contacts">Контакты</TabsTrigger>
+            {isAdmin && <TabsTrigger value="bells">Звонки</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="menu">Столовая</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="teachers">Учителя</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="contacts">Контакты</TabsTrigger>}
             <TabsTrigger value="news">Новости</TabsTrigger>
           </TabsList>
 
@@ -417,29 +460,37 @@ export default function Admin() {
                 Каждый класс имеет уникальный код для входа учеников в приложение
               </p>
               
-              <div className="space-y-4 mb-6">
-                <div className="grid gap-4">
-                  {Object.entries(classCodes).map(([className, code]) => (
-                    <div key={className} className="flex gap-2 items-center p-4 border rounded-lg bg-muted/50">
-                      <div className="flex-1">
-                        <div className="font-semibold text-lg">{className}</div>
-                        <div className="text-sm text-muted-foreground">Код класса</div>
-                      </div>
-                      <Input
-                        value={code}
-                        onChange={(e) => updateClassCode(className, e.target.value)}
-                        className="w-40 font-mono text-center"
-                        placeholder="КОД"
-                      />
-                      <Button variant="destructive" size="icon" onClick={() => removeClass(className)}>
-                        <Icon name="Trash2" size={18} />
-                      </Button>
-                    </div>
-                  ))}
+              {isLoadingClasses ? (
+                <div className="text-center py-8">
+                  <Icon name="Loader2" size={32} className="animate-spin mx-auto text-muted-foreground" />
+                  <p className="text-muted-foreground mt-2">Загрузка классов...</p>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4 mb-6">
+                  <div className="grid gap-4">
+                    {classCodes.map((classItem) => (
+                      <div key={classItem.id} className="flex gap-2 items-center p-4 border rounded-lg bg-muted/50">
+                        <div className="flex-1">
+                          <div className="font-semibold text-lg">{classItem.name}</div>
+                          <div className="text-sm text-muted-foreground">Код класса</div>
+                        </div>
+                        <Input
+                          value={classItem.access_code}
+                          onBlur={(e) => {
+                            if (e.target.value !== classItem.access_code) {
+                              updateClassCode(classItem.id, e.target.value);
+                            }
+                          }}
+                          className="w-40 font-mono text-center uppercase"
+                          placeholder="КОД"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              <div className="border-t pt-6 mb-6">
+              <div className="border-t pt-6">
                 <h3 className="font-semibold mb-4">Добавить новый класс</h3>
                 <div className="flex gap-2">
                   <Input
@@ -448,22 +499,20 @@ export default function Admin() {
                     onChange={(e) => setNewClassName(e.target.value)}
                   />
                   <Input
-                    placeholder="Код класса"
+                    placeholder="Код (оставь пустым для автогенерации)"
                     value={newClassCode}
                     onChange={(e) => setNewClassCode(e.target.value)}
-                    className="w-40 font-mono uppercase"
+                    className="flex-1 font-mono uppercase"
                   />
                   <Button onClick={addNewClass}>
                     <Icon name="Plus" size={18} className="mr-2" />
                     Добавить
                   </Button>
                 </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  💡 Если не указать код, он будет сгенерирован автоматически
+                </p>
               </div>
-
-              <Button onClick={saveClassCodes} className="w-full">
-                <Icon name="Save" size={18} className="mr-2" />
-                Сохранить все изменения
-              </Button>
             </Card>
           </TabsContent>
 

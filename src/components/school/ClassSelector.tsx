@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import FUNC_URLS from '../../../backend/func2url.json';
 
 interface ClassSelectorProps {
   onClassSelect: (className: string) => void;
@@ -13,22 +14,31 @@ interface ClassSelectorProps {
 export default function ClassSelector({ onClassSelect }: ClassSelectorProps) {
   const { toast } = useToast();
   const [classCode, setClassCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleCodeSubmit = () => {
+  const handleCodeSubmit = async () => {
     const code = classCode.trim().toUpperCase();
     if (!code) {
       toast({ title: 'Ошибка', description: 'Введи код класса', variant: 'destructive' });
       return;
     }
 
-    const classCodes = JSON.parse(localStorage.getItem('classCodes') || '{}');
-    const className = Object.keys(classCodes).find(key => classCodes[key] === code);
-
-    if (className) {
-      onClassSelect(className);
-      toast({ title: 'Успешно!', description: `Добро пожаловать в ${className}` });
-    } else {
-      toast({ title: 'Ошибка', description: 'Неверный код класса', variant: 'destructive' });
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`${FUNC_URLS.classes}?code=${code}`);
+      const data = await response.json();
+      
+      if (response.ok && data.class) {
+        onClassSelect(data.class.name);
+        toast({ title: 'Успешно!', description: `Добро пожаловать в ${data.class.name}` });
+      } else {
+        toast({ title: 'Ошибка', description: 'Неверный код класса', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось проверить код', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -55,9 +65,9 @@ export default function ClassSelector({ onClassSelect }: ClassSelectorProps) {
               autoFocus
             />
           </div>
-          <Button className="w-full" onClick={handleCodeSubmit}>
-            <Icon name="LogIn" size={18} className="mr-2" />
-            Войти
+          <Button className="w-full" onClick={handleCodeSubmit} disabled={isLoading}>
+            <Icon name={isLoading ? "Loader2" : "LogIn"} size={18} className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Проверка...' : 'Войти'}
           </Button>
           <div className="text-center text-sm text-muted-foreground mt-4">
             <p>💡 Код класса можно узнать у классного руководителя</p>

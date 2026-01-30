@@ -210,6 +210,11 @@ export default function Index() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/teacher" title="Вход для учителей">
+                <Icon name="User" size={18} />
+              </a>
+            </Button>
             <Icon name="Sun" size={18} className="text-muted-foreground" />
             <Switch checked={darkMode} onCheckedChange={setDarkMode} />
             <Icon name="Moon" size={18} className="text-muted-foreground" />
