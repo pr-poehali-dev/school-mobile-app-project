@@ -28,6 +28,27 @@ def handler(event: dict, context) -> dict:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
+        if method == 'GET':
+            action = event.get('queryStringParameters', {}).get('action', '')
+            
+            if action == 'list_teachers':
+                cur.execute(f"""
+                    SELECT u.id, u.username, u.full_name, u.subject, u.class_id, c.name as class_name
+                    FROM {schema}.users u
+                    LEFT JOIN {schema}.classes c ON u.class_id = c.id
+                    WHERE u.role = 'teacher'
+                    ORDER BY c.name, u.full_name
+                """)
+                
+                teachers = cur.fetchall()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'teachers': [dict(t) for t in teachers]}),
+                    'isBase64Encoded': False
+                }
+        
         if method == 'POST':
             body = json.loads(event.get('body', '{}'))
             action = body.get('action')
@@ -73,12 +94,14 @@ def handler(event: dict, context) -> dict:
                         'isBase64Encoded': False
                     }
             
-            elif action == 'register_teacher':
+            elif action == 'create_teacher':
                 username = body.get('username', '')
                 password = body.get('password', '')
-                class_name = body.get('class_name', '')
+                full_name = body.get('full_name', '')
+                subject = body.get('subject', '')
+                class_id = body.get('class_id')
                 
-                if not username or not password or not class_name:
+                if not username or not password or not full_name or not class_id:
                     return {
                         'statusCode': 400,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -86,29 +109,47 @@ def handler(event: dict, context) -> dict:
                         'isBase64Encoded': False
                     }
                 
-                cur.execute(f"SELECT id FROM {schema}.classes WHERE name = '{class_name}'")
-                class_row = cur.fetchone()
-                
-                if not class_row:
+                cur.execute(f"SELECT id FROM {schema}.users WHERE username = '{username}'")
+                if cur.fetchone():
                     return {
-                        'statusCode': 404,
+                        'statusCode': 400,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Класс не найден'}),
+                        'body': json.dumps({'error': 'Пользователь с таким логином уже существует'}),
                         'isBase64Encoded': False
                     }
                 
                 password_hash = hashlib.sha256(password.encode()).hexdigest()
                 
                 cur.execute(f"""
-                    INSERT INTO {schema}.users (username, password_hash, role, class_id)
-                    VALUES ('{username}', '{password_hash}', 'teacher', {class_row['id']})
+                    INSERT INTO {schema}.users (username, password_hash, role, class_id, full_name, subject)
+                    VALUES ('{username}', '{password_hash}', 'teacher', {class_id}, '{full_name}', '{subject}')
                     RETURNING id
                 """)
                 
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'success': True, 'message': 'Учитель зарегистрирован'}),
+                    'body': json.dumps({'success': True, 'message': 'Учитель создан'}),
+                    'isBase64Encoded': False
+                }
+            
+            elif action == 'delete_teacher':
+                teacher_id = body.get('teacher_id')
+                
+                if not teacher_id:
+                    return {
+                        'statusCode': 400,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'Необходим teacher_id'}),
+                        'isBase64Encoded': False
+                    }
+                
+                cur.execute(f"DELETE FROM {schema}.users WHERE id = {teacher_id} AND role = 'teacher'")
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True}),
                     'isBase64Encoded': False
                 }
         

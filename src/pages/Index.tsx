@@ -209,7 +209,12 @@ export default function Index() {
               {selectedClass} • Сменить класс
             </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/admin" title="Админ-панель">
+                <Icon name="Settings" size={18} />
+              </a>
+            </Button>
             <Button variant="ghost" size="sm" asChild>
               <a href="/teacher" title="Вход для учителей">
                 <Icon name="User" size={18} />

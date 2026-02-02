@@ -31,10 +31,20 @@ interface Menu {
 }
 
 interface Teacher {
+  id?: number;
   name: string;
   subject: string;
   category: string;
   phone: string;
+}
+
+interface TeacherAccount {
+  id?: number;
+  username: string;
+  full_name: string;
+  subject: string;
+  class_id: number;
+  class_name: string;
 }
 
 interface NewsItem {
@@ -95,6 +105,9 @@ export default function Admin() {
     };
   });
 
+  const [teacherAccounts, setTeacherAccounts] = useState<TeacherAccount[]>([]);
+  const [newTeacher, setNewTeacher] = useState({ username: '', password: '', full_name: '', subject: '', class_id: 0 });
+  
   const [teachersData, setTeachersData] = useState<Teacher[]>(() => {
     const saved = localStorage.getItem('teachersData');
     return saved ? JSON.parse(saved) : [
@@ -329,6 +342,78 @@ export default function Admin() {
     }
   };
 
+  const loadTeacherAccounts = async () => {
+    try {
+      const response = await fetch(`${FUNC_URLS.auth}?action=list_teachers`);
+      const data = await response.json();
+      if (data.teachers) {
+        setTeacherAccounts(data.teachers);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки учителей:', error);
+    }
+  };
+
+  const createTeacherAccount = async () => {
+    if (!newTeacher.username || !newTeacher.password || !newTeacher.full_name || !newTeacher.class_id) {
+      toast({ title: 'Ошибка', description: 'Заполните все поля', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      const response = await fetch(FUNC_URLS.auth, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_teacher',
+          username: newTeacher.username,
+          password: newTeacher.password,
+          full_name: newTeacher.full_name,
+          subject: newTeacher.subject,
+          class_id: newTeacher.class_id
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        await loadTeacherAccounts();
+        setNewTeacher({ username: '', password: '', full_name: '', subject: '', class_id: 0 });
+        toast({ title: 'Успешно', description: 'Учитель добавлен' });
+      } else {
+        toast({ title: 'Ошибка', description: data.error || 'Не удалось создать учителя', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось создать учителя', variant: 'destructive' });
+    }
+  };
+
+  const deleteTeacherAccount = async (teacherId: number) => {
+    try {
+      const response = await fetch(FUNC_URLS.auth, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_teacher',
+          teacher_id: teacherId
+        })
+      });
+
+      if (response.ok) {
+        await loadTeacherAccounts();
+        toast({ title: 'Успешно', description: 'Учитель удален' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось удалить учителя', variant: 'destructive' });
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn && isAdmin) {
+      loadTeacherAccounts();
+    }
+  }, [isLoggedIn, isAdmin]);
+
   if (isSettingPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
@@ -443,12 +528,13 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue={isTeacher ? "schedule" : "classes"} className="w-full">
-          <TabsList className={`grid ${isAdmin ? 'grid-cols-3 lg:grid-cols-7' : 'grid-cols-2 lg:grid-cols-4'} w-full mb-6`}>
+          <TabsList className={`grid ${isAdmin ? 'grid-cols-4 lg:grid-cols-8' : 'grid-cols-2 lg:grid-cols-4'} w-full mb-6`}>
             {isAdmin && <TabsTrigger value="classes">Классы</TabsTrigger>}
             <TabsTrigger value="schedule">Расписание</TabsTrigger>
             {isAdmin && <TabsTrigger value="bells">Звонки</TabsTrigger>}
             {isAdmin && <TabsTrigger value="menu">Столовая</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="teachers">Учителя</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="teacher-accounts">Учителя</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="teachers">Справочник</TabsTrigger>}
             {isAdmin && <TabsTrigger value="contacts">Контакты</TabsTrigger>}
             <TabsTrigger value="news">Новости</TabsTrigger>
           </TabsList>
@@ -512,6 +598,104 @@ export default function Admin() {
                 <p className="text-sm text-muted-foreground mt-2">
                   💡 Если не указать код, он будет сгенерирован автоматически
                 </p>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="teacher-accounts" className="space-y-4">
+            <Card className="p-6">
+              <h2 className="text-2xl font-heading font-bold mb-4">Управление учителями</h2>
+              <p className="text-muted-foreground mb-6">
+                Создавайте аккаунты для учителей с привязкой к классу
+              </p>
+
+              <div className="space-y-4 mb-6">
+                {teacherAccounts.map((teacher) => (
+                  <div key={teacher.id} className="p-4 border rounded-lg bg-muted/50">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">{teacher.full_name}</div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          <span className="font-mono bg-background px-2 py-0.5 rounded">@{teacher.username}</span>
+                          {teacher.subject && <span className="ml-2">• {teacher.subject}</span>}
+                        </div>
+                        <div className="text-sm mt-1">
+                          Класс: <span className="font-semibold">{teacher.class_name}</span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => teacher.id && deleteTeacherAccount(teacher.id)}
+                      >
+                        <Icon name="Trash2" size={16} className="text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t pt-6">
+                <h3 className="font-semibold mb-4">Добавить нового учителя</h3>
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Логин</Label>
+                      <Input
+                        placeholder="ivanov"
+                        value={newTeacher.username}
+                        onChange={(e) => setNewTeacher({...newTeacher, username: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Пароль</Label>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        value={newTeacher.password}
+                        onChange={(e) => setNewTeacher({...newTeacher, password: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>ФИО учителя</Label>
+                    <Input
+                      placeholder="Иванов Иван Иванович"
+                      value={newTeacher.full_name}
+                      onChange={(e) => setNewTeacher({...newTeacher, full_name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Предмет</Label>
+                    <Input
+                      placeholder="Математика"
+                      value={newTeacher.subject}
+                      onChange={(e) => setNewTeacher({...newTeacher, subject: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Класс</Label>
+                    <Select
+                      value={newTeacher.class_id.toString()}
+                      onValueChange={(val) => setNewTeacher({...newTeacher, class_id: parseInt(val)})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите класс" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classCodes.map((c) => (
+                          <SelectItem key={c.id} value={c.id.toString()}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={createTeacherAccount} className="w-full">
+                    <Icon name="UserPlus" size={18} className="mr-2" />
+                    Создать учителя
+                  </Button>
+                </div>
               </div>
             </Card>
           </TabsContent>
