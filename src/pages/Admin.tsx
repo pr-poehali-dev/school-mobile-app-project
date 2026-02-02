@@ -6,11 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 import FUNC_URLS from '../../backend/func2url.json';
 import AdminAuth from '@/components/admin/AdminAuth';
 import AdminTabs from '@/components/admin/AdminTabs';
-import { Schedule, Bell, Menu, Teacher, TeacherAccount, NewsItem, ClassItem } from '@/components/admin/AdminTypes';
+import { Schedule, Bell, Menu, Teacher, TeacherAccount, NewsItem, ClassItem, TeacherScheduleItem } from '@/components/admin/AdminTypes';
+import TeacherScheduleTab from '@/components/admin/TeacherScheduleTab';
 
 export default function Admin() {
   const { toast } = useToast();
-  const [currentUser, setCurrentUser] = useState<{username: string, role: string, class_id?: number, class_name?: string} | null>(() => {
+  const [currentUser, setCurrentUser] = useState<{id?: number, username: string, role: string, subject?: string, class_id?: number | null, class_name?: string | null} | null>(() => {
     const saved = localStorage.getItem('teacherUser');
     return saved ? JSON.parse(saved) : null;
   });
@@ -55,7 +56,7 @@ export default function Admin() {
   });
 
   const [teacherAccounts, setTeacherAccounts] = useState<TeacherAccount[]>([]);
-  const [newTeacher, setNewTeacher] = useState({ username: '', password: '', full_name: '', subject: '', class_id: 0 });
+  const [newTeacher, setNewTeacher] = useState({ username: '', password: '', full_name: '', subject: '', class_id: null as number | null });
   
   const [teachersData, setTeachersData] = useState<Teacher[]>(() => {
     const saved = localStorage.getItem('teachersData');
@@ -86,6 +87,8 @@ export default function Admin() {
   const [selectedDay, setSelectedDay] = useState('Понедельник');
   const [newClassName, setNewClassName] = useState('');
   const [newClassCode, setNewClassCode] = useState('');
+  const [teacherSchedule, setTeacherSchedule] = useState<TeacherScheduleItem[]>([]);
+  const [isLoadingTeacherSchedule, setIsLoadingTeacherSchedule] = useState(false);
 
   const handleSetPassword = (password: string, confirmPassword: string) => {
     if (password.length < 4) {
@@ -300,8 +303,8 @@ export default function Admin() {
   };
 
   const createTeacherAccount = async () => {
-    if (!newTeacher.username || !newTeacher.password || !newTeacher.full_name || !newTeacher.class_id) {
-      toast({ title: 'Ошибка', description: 'Заполните все поля', variant: 'destructive' });
+    if (!newTeacher.username || !newTeacher.password || !newTeacher.full_name) {
+      toast({ title: 'Ошибка', description: 'Заполните обязательные поля', variant: 'destructive' });
       return;
     }
 
@@ -359,6 +362,51 @@ export default function Admin() {
     }
   }, [isLoggedIn, isAdmin]);
 
+  useEffect(() => {
+    if (isLoggedIn && isTeacher && currentUser?.id) {
+      loadTeacherSchedule();
+    }
+  }, [isLoggedIn, isTeacher, currentUser?.id]);
+
+  const loadTeacherSchedule = async () => {
+    if (!currentUser?.id) return;
+    setIsLoadingTeacherSchedule(true);
+    try {
+      const response = await fetch(`${FUNC_URLS['teacher-schedule']}?user_id=${currentUser.id}`);
+      const data = await response.json();
+      if (data.schedule) {
+        setTeacherSchedule(data.schedule);
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить расписание', variant: 'destructive' });
+    } finally {
+      setIsLoadingTeacherSchedule(false);
+    }
+  };
+
+  const saveTeacherSchedule = async () => {
+    if (!currentUser?.id || !currentUser?.subject) return;
+    
+    try {
+      for (const item of teacherSchedule) {
+        await fetch(FUNC_URLS['teacher-schedule'], {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: currentUser.id,
+            day_of_week: item.day_of_week,
+            lesson_number: item.lesson_number,
+            subject: currentUser.subject,
+            class_id: item.class_id
+          })
+        });
+      }
+      toast({ title: 'Сохранено', description: 'Расписание обновлено' });
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить расписание', variant: 'destructive' });
+    }
+  };
+
   if (!isLoggedIn || isSettingPassword) {
     return (
       <AdminAuth
@@ -395,57 +443,68 @@ export default function Admin() {
           </div>
         </div>
 
-        <AdminTabs
-          isAdmin={isAdmin}
-          isTeacher={isTeacher}
-          scheduleData={scheduleData}
-          bellsData={bellsData}
-          menuData={menuData}
-          teachersData={teachersData}
-          teacherAccounts={teacherAccounts}
-          newsData={newsData}
-          contactsData={contactsData}
-          classCodes={classCodes}
-          isLoadingClasses={isLoadingClasses}
-          selectedClass={selectedClass}
-          selectedDay={selectedDay}
-          newClassName={newClassName}
-          newClassCode={newClassCode}
-          newTeacher={newTeacher}
-          onScheduleChange={setScheduleData}
-          onBellsChange={setBellsData}
-          onMenuChange={setMenuData}
-          onTeachersChange={setTeachersData}
-          onNewsChange={setNewsData}
-          onContactsChange={setContactsData}
-          onSelectedClassChange={setSelectedClass}
-          onSelectedDayChange={setSelectedDay}
-          onNewClassNameChange={setNewClassName}
-          onNewClassCodeChange={setNewClassCode}
-          onNewTeacherChange={setNewTeacher}
-          onSaveSchedule={saveSchedule}
-          onSaveBells={saveBells}
-          onSaveMenu={saveMenu}
-          onSaveTeachers={saveTeachers}
-          onSaveNews={saveNews}
-          onSaveContacts={saveContacts}
-          onAddLesson={addLesson}
-          onRemoveLesson={removeLesson}
-          onUpdateLesson={updateLesson}
-          onAddBell={addBell}
-          onRemoveBell={removeBell}
-          onUpdateBell={updateBell}
-          onAddTeacher={addTeacher}
-          onRemoveTeacher={removeTeacher}
-          onUpdateTeacher={updateTeacher}
-          onAddNews={addNews}
-          onRemoveNews={removeNews}
-          onUpdateNews={updateNews}
-          onAddNewClass={addNewClass}
-          onUpdateClassCode={updateClassCode}
-          onCreateTeacherAccount={createTeacherAccount}
-          onDeleteTeacherAccount={deleteTeacherAccount}
-        />
+        {isTeacher && currentUser?.subject ? (
+          <TeacherScheduleTab
+            userId={currentUser.id!}
+            subject={currentUser.subject}
+            classCodes={classCodes}
+            scheduleData={teacherSchedule}
+            onScheduleChange={setTeacherSchedule}
+            onSave={saveTeacherSchedule}
+          />
+        ) : (
+          <AdminTabs
+            isAdmin={isAdmin}
+            isTeacher={isTeacher}
+            scheduleData={scheduleData}
+            bellsData={bellsData}
+            menuData={menuData}
+            teachersData={teachersData}
+            teacherAccounts={teacherAccounts}
+            newsData={newsData}
+            contactsData={contactsData}
+            classCodes={classCodes}
+            isLoadingClasses={isLoadingClasses}
+            selectedClass={selectedClass}
+            selectedDay={selectedDay}
+            newClassName={newClassName}
+            newClassCode={newClassCode}
+            newTeacher={newTeacher}
+            onScheduleChange={setScheduleData}
+            onBellsChange={setBellsData}
+            onMenuChange={setMenuData}
+            onTeachersChange={setTeachersData}
+            onNewsChange={setNewsData}
+            onContactsChange={setContactsData}
+            onSelectedClassChange={setSelectedClass}
+            onSelectedDayChange={setSelectedDay}
+            onNewClassNameChange={setNewClassName}
+            onNewClassCodeChange={setNewClassCode}
+            onNewTeacherChange={setNewTeacher}
+            onSaveSchedule={saveSchedule}
+            onSaveBells={saveBells}
+            onSaveMenu={saveMenu}
+            onSaveTeachers={saveTeachers}
+            onSaveNews={saveNews}
+            onSaveContacts={saveContacts}
+            onAddLesson={addLesson}
+            onRemoveLesson={removeLesson}
+            onUpdateLesson={updateLesson}
+            onAddBell={addBell}
+            onRemoveBell={removeBell}
+            onUpdateBell={updateBell}
+            onAddTeacher={addTeacher}
+            onRemoveTeacher={removeTeacher}
+            onUpdateTeacher={updateTeacher}
+            onAddNews={addNews}
+            onRemoveNews={removeNews}
+            onUpdateNews={updateNews}
+            onAddNewClass={addNewClass}
+            onUpdateClassCode={updateClassCode}
+            onCreateTeacherAccount={createTeacherAccount}
+            onDeleteTeacherAccount={deleteTeacherAccount}
+          />
+        )}
       </div>
     </div>
   );

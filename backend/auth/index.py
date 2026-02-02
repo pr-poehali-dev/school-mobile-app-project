@@ -101,11 +101,11 @@ def handler(event: dict, context) -> dict:
                 subject = body.get('subject', '')
                 class_id = body.get('class_id')
                 
-                if not username or not password or not full_name or not class_id:
+                if not username or not password or not full_name:
                     return {
                         'statusCode': 400,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Необходимы все поля'}),
+                        'body': json.dumps({'error': 'Необходимы username, password и full_name'}),
                         'isBase64Encoded': False
                     }
                 
@@ -120,9 +120,12 @@ def handler(event: dict, context) -> dict:
                 
                 password_hash = hashlib.sha256(password.encode()).hexdigest()
                 
+                class_id_str = str(class_id) if class_id else 'NULL'
+                subject_str = f"'{subject}'" if subject else 'NULL'
+                
                 cur.execute(f"""
                     INSERT INTO {schema}.users (username, password_hash, role, class_id, full_name, subject)
-                    VALUES ('{username}', '{password_hash}', 'teacher', {class_id}, '{full_name}', '{subject}')
+                    VALUES ('{username}', '{password_hash}', 'teacher', {class_id_str}, '{full_name}', {subject_str})
                     RETURNING id
                 """)
                 

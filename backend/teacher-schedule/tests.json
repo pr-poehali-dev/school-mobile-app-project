@@ -1,0 +1,22 @@
+{
+  "tests": [
+
+    {
+      "name": "Create schedule entry",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "user_id": 1,
+        "day_of_week": "Понедельник",
+        "lesson_number": 1,
+        "subject": "Математика",
+        "class_id": 1
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

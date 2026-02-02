@@ -30,8 +30,17 @@ export interface TeacherAccount {
   username: string;
   full_name: string;
   subject: string;
-  class_id: number;
-  class_name: string;
+  class_id: number | null;
+  class_name: string | null;
+}
+
+export interface TeacherScheduleItem {
+  id?: number;
+  day_of_week: string;
+  lesson_number: number;
+  subject: string;
+  class_id: number | null;
+  class_name?: string;
 }
 
 export interface NewsItem {

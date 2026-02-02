@@ -25,7 +25,7 @@ interface AdminTabsProps {
   selectedDay: string;
   newClassName: string;
   newClassCode: string;
-  newTeacher: { username: string; password: string; full_name: string; subject: string; class_id: number };
+  newTeacher: { username: string; password: string; full_name: string; subject: string; class_id: number | null };
   onScheduleChange: (data: Schedule) => void;
   onBellsChange: (data: { [day: string]: Bell[] }) => void;
   onMenuChange: (data: Menu) => void;
@@ -36,7 +36,7 @@ interface AdminTabsProps {
   onSelectedDayChange: (day: string) => void;
   onNewClassNameChange: (name: string) => void;
   onNewClassCodeChange: (code: string) => void;
-  onNewTeacherChange: (teacher: { username: string; password: string; full_name: string; subject: string; class_id: number }) => void;
+  onNewTeacherChange: (teacher: { username: string; password: string; full_name: string; subject: string; class_id: number | null }) => void;
   onSaveSchedule: () => void;
   onSaveBells: () => void;
   onSaveMenu: () => void;
@@ -207,7 +207,7 @@ export default function AdminTabs(props: AdminTabsProps) {
                       {teacher.subject && <span className="ml-2">• {teacher.subject}</span>}
                     </div>
                     <div className="text-sm mt-1">
-                      Класс: <span className="font-semibold">{teacher.class_name}</span>
+                      Класс: <span className="font-semibold">{teacher.class_name || 'Без класса'}</span>
                     </div>
                   </div>
                   <Button
@@ -261,15 +261,16 @@ export default function AdminTabs(props: AdminTabsProps) {
                 />
               </div>
               <div>
-                <Label>Класс</Label>
+                <Label>Класс (необязательно)</Label>
                 <Select
-                  value={newTeacher.class_id.toString()}
-                  onValueChange={(val) => onNewTeacherChange({...newTeacher, class_id: parseInt(val)})}
+                  value={newTeacher.class_id?.toString() || 'none'}
+                  onValueChange={(val) => onNewTeacherChange({...newTeacher, class_id: val === 'none' ? null : parseInt(val)})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите класс" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Без класса</SelectItem>
                     {classCodes.map((c) => (
                       <SelectItem key={c.id} value={c.id.toString()}>
                         {c.name}
