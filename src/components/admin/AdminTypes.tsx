@@ -11,7 +11,7 @@ export interface Bell {
 }
 
 export interface Menu {
-  [day: string]: {
+  [dayNumber: string]: {
     breakfast: string[];
     lunch: string[];
   };
@@ -58,3 +58,8 @@ export interface ClassItem {
 }
 
 export const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница'];
+
+export const MENU_DAYS = [
+  'День 1', 'День 2', 'День 3', 'День 4', 'День 5',
+  'День 6', 'День 7', 'День 8', 'День 9', 'День 10'
+];

@@ -48,7 +48,7 @@ export default function Admin() {
   const [menuData, setMenuData] = useState<Menu>(() => {
     const saved = localStorage.getItem('menuData');
     return saved ? JSON.parse(saved) : {
-      'Понедельник': {
+      'День 1': {
         breakfast: ['Каша овсяная', 'Масло сливочное', 'Чай с сахаром', 'Булочка'],
         lunch: ['Борщ', 'Котлета куриная', 'Пюре картофельное', 'Салат из капусты', 'Компот', 'Хлеб'],
       }
@@ -84,7 +84,7 @@ export default function Admin() {
   const [classCodes, setClassCodes] = useState<ClassItem[]>([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState(true);
   const [selectedClass, setSelectedClass] = useState('5А');
-  const [selectedDay, setSelectedDay] = useState('Понедельник');
+  const [selectedDay, setSelectedDay] = useState('День 1');
   const [newClassName, setNewClassName] = useState('');
   const [newClassCode, setNewClassCode] = useState('');
   const [teacherSchedule, setTeacherSchedule] = useState<TeacherScheduleItem[]>([]);

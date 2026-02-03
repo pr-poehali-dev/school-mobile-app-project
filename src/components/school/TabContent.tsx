@@ -115,6 +115,28 @@ export default function TabContentComponent({
   }
 
   if (activeTab === 'menu') {
+    const getCurrentMenuDay = () => {
+      const startDate = new Date('2026-02-03');
+      const today = new Date();
+      const daysDiff = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let schoolDays = 0;
+      for (let i = 0; i <= daysDiff; i++) {
+        const checkDate = new Date(startDate);
+        checkDate.setDate(startDate.getDate() + i);
+        const dayOfWeek = checkDate.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          schoolDays++;
+        }
+      }
+      
+      const cycleDay = ((schoolDays - 1) % 10) + 1;
+      return `День ${cycleDay}`;
+    };
+
+    const currentDay = getCurrentMenuDay();
+    const menuDays = Array.from({ length: 10 }, (_, i) => `День ${i + 1}`);
+
     return (
       <div className="space-y-4 animate-fade-in">
         <Button variant="ghost" onClick={onBack} className="mb-2">
@@ -124,15 +146,25 @@ export default function TabContentComponent({
         
         <Card className="p-4">
           <h2 className="text-2xl font-heading font-bold mb-4">Меню столовой</h2>
-          <Tabs defaultValue="Понедельник" className="w-full">
+          <p className="text-sm text-muted-foreground mb-4">
+            Меню повторяется каждые 10 учебных дней. Сегодня: <span className="font-semibold text-primary">{currentDay}</span>
+          </p>
+          <Tabs defaultValue={currentDay} className="w-full">
             <TabsList className="grid grid-cols-5 w-full mb-4">
-              {DAYS.slice(0, 5).map(day => (
+              {menuDays.slice(0, 5).map(day => (
                 <TabsTrigger key={day} value={day} className="text-xs">
-                  {day.slice(0, 2)}
+                  {day}
                 </TabsTrigger>
               ))}
             </TabsList>
-            {DAYS.slice(0, 5).map(day => (
+            <TabsList className="grid grid-cols-5 w-full mb-4">
+              {menuDays.slice(5, 10).map(day => (
+                <TabsTrigger key={day} value={day} className="text-xs">
+                  {day}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {menuDays.map(day => (
               <TabsContent key={day} value={day} className="space-y-4">
                 <div>
                   <h3 className="font-heading font-bold text-lg mb-2 flex items-center gap-2">
@@ -140,7 +172,7 @@ export default function TabContentComponent({
                     Завтрак
                   </h3>
                   <ul className="space-y-1">
-                    {(menuData[day]?.breakfast || menuData['Понедельник']?.breakfast || []).map((item: string, idx: number) => (
+                    {(menuData[day]?.breakfast || menuData['День 1']?.breakfast || []).map((item: string, idx: number) => (
                       <li key={idx} className="flex items-start gap-2 text-sm">
                         <span className="text-secondary">•</span>
                         <span>{item}</span>
@@ -154,7 +186,7 @@ export default function TabContentComponent({
                     Обед
                   </h3>
                   <ul className="space-y-1">
-                    {(menuData[day]?.lunch || menuData['Понедельник']?.lunch || []).map((item: string, idx: number) => (
+                    {(menuData[day]?.lunch || menuData['День 1']?.lunch || []).map((item: string, idx: number) => (
                       <li key={idx} className="flex items-start gap-2 text-sm">
                         <span className="text-primary">•</span>
                         <span>{item}</span>

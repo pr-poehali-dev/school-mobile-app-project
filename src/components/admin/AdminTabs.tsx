@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
-import { Schedule, Bell, Menu, Teacher, TeacherAccount, NewsItem, ClassItem, DAYS } from './AdminTypes';
+import { Schedule, Bell, Menu, Teacher, TeacherAccount, NewsItem, ClassItem, DAYS, MENU_DAYS } from './AdminTypes';
 
 interface AdminTabsProps {
   isAdmin: boolean;
@@ -402,14 +402,15 @@ export default function AdminTabs(props: AdminTabsProps) {
       <TabsContent value="menu" className="space-y-4">
         <Card className="p-6">
           <h2 className="text-2xl font-heading font-bold mb-4">Редактирование меню столовой</h2>
+          <p className="text-sm text-muted-foreground mb-4">Меню составлено на 10-дневный цикл. Каждое блюдо повторяется через 10 учебных дней.</p>
           <div className="mb-4">
-            <Label>День недели</Label>
+            <Label>День цикла</Label>
             <Select value={selectedDay} onValueChange={onSelectedDayChange}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {DAYS.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}
+                {MENU_DAYS.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
